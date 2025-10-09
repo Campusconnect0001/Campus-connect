@@ -3,318 +3,257 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Campus Connect</title>
+  <title>Campus Connect – Login & Dashboard</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", Roboto, Arial, sans-serif; }
-    body { height: 100vh; background: #f2f4f8; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-    .app-container {
-      width: 100%;
-      max-width: 480px;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: 90vh;
-    }
-
-    header {
-      background: #18ab91;
-      color: #fff;
-      padding: 16px;
-      text-align: center;
-    }
-    header h1 { font-size: 20px; margin-bottom: 4px; }
-    header p { font-size: 13px; }
-
-    .view {
-      display: none;
-      padding: 16px;
-      overflow-y: auto;
-      flex: 1;
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    .view.active { display: block; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateX(100%); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    input, select {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
-
-    button {
-      padding: 12px;
-      width: 100%;
-      background: #18ab91;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      margin-top: 8px;
-      cursor: pointer;
-    }
-
-    .chat-box, .chat-list {
-      background: #fff;
-      border: 1px solid #eee;
-      border-radius: 8px;
-      padding: 12px;
-      height: 60vh;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-
-    .msg, .bubble {
-      padding: 10px;
-      margin: 6px 0;
-      border-radius: 10px;
-      max-width: 75%;
-    }
-
-    .self, .mine { background: #dcf8c6; margin-left: auto; }
-    .other, .theirs { background: #eee; margin-right: auto; }
-
-    .input-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .input-row input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-    }
-
-    .input-row button {
-      padding: 10px 16px;
-      background: #18ab91;
-      color: #fff;
-      border-radius: 10px;
-      border: none;
-    }
-
-    .back-btn {
-      background: #f43f5e;
-      margin-bottom: 12px;
-    }
-
-    .chat-btn {
-      margin-top: 10px;
-      background: #fff;
-      border: 1.5px solid #18ab91;
-      color: #18ab91;
-    }
-
-    .chat-btn:hover {
-      background: #18ab91;
-      color: #fff;
-    }
+    body { min-height: 100vh; background: #f2f4f8; padding: 20px; }
+    .view { display: none; }
+    .container { position: relative; width: min(900px, 95%); height: 550px; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin: auto; margin-top: 20px; }
+    .form-container { position: absolute; top: 0; height: 100%; transition: all 0.6s ease-in-out; }
+    .sign-in-container { left: 0; width: 50%; z-index: 2; }
+    .sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
+    form { background: #fff; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 50px; text-align: center; }
+    form h1 { color: #18ab91; margin-bottom: 14px; font-weight: 700; letter-spacing: .2px; }
+    input, select, textarea { width: 100%; max-width: 320px; padding: 12px 14px; margin: 8px 0; border-radius: 8px; border: none; background: #f0f1f3; }
+    textarea { resize: vertical; min-height: 80px; }
+    button { margin-top: 14px; padding: 12px 42px; border-radius: 999px; border: none; background: #18ab91; color: #fff; font-weight: 700; letter-spacing: 0.6px; cursor: pointer; transition: transform .08s ease; }
+    button:active { transform: scale(.98); }
+    button.ghost { background: transparent; border: 2px solid rgba(255,255,255,0.35); color: #fff; padding: 10px 30px; }
+    .overlay-container { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; transition: transform 0.6s ease-in-out; z-index: 100; }
+    .overlay { position: relative; left: -100%; width: 200%; height: 100%; display: flex; align-items: center; transition: transform 0.6s ease-in-out; background: linear-gradient(90deg, #20b39a 0%, #17a88a 100%); color: #fff; }
+    .overlay-panel { width: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 40px; text-align: center; }
+    .overlay-panel h1 { font-size: 28px; margin-bottom: 8px; }
+    .overlay-panel p { opacity: .95; max-width: 320px; line-height: 1.4; }
+    .container.right-panel-active .sign-in-container { transform: translateX(100%); opacity: 0; z-index: 1; }
+    .container.right-panel-active .sign-up-container { transform: translateX(100%); opacity: 1; z-index: 5; }
+    .container.right-panel-active .overlay-container { transform: translateX(-100%); }
+    .container.right-panel-active .overlay { transform: translateX(50%); }
+    header { background: #18ab91; color: #fff; padding: 20px; text-align: center; }
+    main { padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px; border-bottom: 1px solid #ccc; text-align: left; }
+    .chat-links a { display:block; margin:5px 0; color:#18ab91; text-decoration:none; }
+    .notice { background:#fff; padding:10px; margin:10px 0; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+    .notice h4 { margin-bottom:4px; color:#18ab91; }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <header>
-      <h1>Campus Connect</h1>
-      <p id="header-subtitle">Unite Your Campus</p>
-    </header>
 
-    <!-- LOGIN / SIGNUP -->
-    <div id="loginView" class="view active">
-      <h2>Login</h2>
-      <input id="loginEmail" type="email" placeholder="Email">
-      <input id="loginPassword" type="password" placeholder="Password">
-      <button id="loginBtn">Login</button>
-
-      <h2 style="margin-top:20px;">Sign Up</h2>
-      <input id="signupName" type="text" placeholder="Name">
-      <input id="signupEmail" type="email" placeholder="Email">
-      <input id="signupPassword" type="password" placeholder="Password">
-      <select id="signupRole">
-        <option value="" disabled selected>Select Role</option>
-        <option value="student">Student</option>
-        <option value="faculty">Faculty</option>
-      </select>
-      <button id="signupBtn">Sign Up</button>
+<!-- LOGIN / SIGNUP VIEW -->
+<div id="loginView" class="view" style="display:block;">
+  <div class="container" id="container">
+    <div class="form-container sign-up-container">
+      <form id="signupForm">
+        <h1>Create Account</h1>
+        <span>Use your email for registration</span>
+        <input id="signupName" type="text" placeholder="Name" required />
+        <input id="signupEmail" type="email" placeholder="Email" required />
+        <input id="signupPassword" type="password" placeholder="Password" required />
+        <select id="signupRole" required>
+          <option value="" disabled selected>Select your role</option>
+          <option value="student">Student</option>
+          <option value="faculty">Faculty</option>
+        </select>
+        <button type="submit">Sign Up</button>
+      </form>
     </div>
 
-    <!-- DASHBOARD -->
-    <div id="dashboardView" class="view">
-      <h2 id="dashboardTitle"></h2>
-      <div id="facultySection" style="display:none;">
-        <h3>Pending Approvals</h3>
-        <div id="pendingList"></div>
-      </div>
-      <button class="chat-btn" id="openGlobal">🌐 Global Chat</button>
-      <button class="chat-btn" id="openPrivate">💬 Private Chat</button>
-      <button class="back-btn" id="logoutBtn">Logout</button>
+    <div class="form-container sign-in-container">
+      <form id="loginForm">
+        <h1>Sign In</h1>
+        <input id="loginEmail" type="email" placeholder="Email" required />
+        <input id="loginPassword" type="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+      </form>
     </div>
 
-    <!-- GLOBAL CHAT -->
-    <div id="globalView" class="view">
-      <button class="back-btn" id="backFromGlobal">← Back</button>
-      <div class="chat-box" id="globalChatBox"></div>
-      <div class="input-row">
-        <input id="globalMsg" type="text" placeholder="Message...">
-        <button id="sendGlobal">Send</button>
-      </div>
-    </div>
-
-    <!-- PRIVATE CHAT -->
-    <div id="privateView" class="view">
-      <button class="back-btn" id="backFromPrivate">← Back</button>
-      <div class="chat-box" id="privateChatBox"></div>
-      <div class="input-row">
-        <input id="privateMsg" type="text" placeholder="Message...">
-        <button id="sendPrivate">Send</button>
+    <div class="overlay-container">
+      <div class="overlay">
+        <div class="overlay-panel overlay-left">
+          <h1>Welcome Back!</h1>
+          <p>Login with your personal info</p>
+          <button class="ghost" id="signIn">Sign In</button>
+        </div>
+        <div class="overlay-panel overlay-right">
+          <h1>Hello, Friend!</h1>
+          <p>Enter your details to start</p>
+          <button class="ghost" id="signUp">Sign Up</button>
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Firebase Scripts (non-module version) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"></script>
+<!-- FACULTY DASHBOARD -->
+<div id="facultyView" class="view">
+  <header><h1>Faculty / Admin Dashboard</h1></header>
+  <main>
+    <p>Welcome, Faculty/Admin.</p>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAFKmM22FUSQPYy-eMsBzcZN3bmAxglXl0",
-      authDomain: "smart-timetable-266fe.firebaseapp.com",
-      projectId: "smart-timetable-266fe"
-    };
+    <section>
+      <h3>📢 Post a Notice</h3>
+      <form id="noticeForm">
+        <input id="noticeTitle" type="text" placeholder="Notice Title" required />
+        <textarea id="noticeMsg" placeholder="Notice Message" required></textarea>
+        <input id="noticeFile" type="file" />
+        <button type="submit">Post Notice</button>
+      </form>
+    </section>
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    <h3 style="margin-top:20px;">Pending Signups:</h3>
+    <table id="pendingTable"><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
+    <button id="logoutBtnFaculty">Logout</button>
+  </main>
+</div>
 
-    const views = ["loginView", "dashboardView", "globalView", "privateView"];
-    function show(viewId) {
-      views.forEach(id => document.getElementById(id).classList.remove("active"));
-      document.getElementById(viewId).classList.add("active");
-    }
+<!-- STUDENT DASHBOARD -->
+<div id="studentView" class="view">
+  <header><h1>Student Dashboard</h1></header>
+  <main>
+    <p>Welcome, Student.</p>
 
-    const loginBtn = document.getElementById("loginBtn");
-    const signupBtn = document.getElementById("signupBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const openGlobal = document.getElementById("openGlobal");
-    const openPrivate = document.getElementById("openPrivate");
-    const backFromGlobal = document.getElementById("backFromGlobal");
-    const backFromPrivate = document.getElementById("backFromPrivate");
+    <section style="margin-top:20px;">
+      <h3>Chat Options</h3>
+      <a href="chat.html" target="_blank">🌐 Global Chat</a>
+      <a href="private.html" target="_blank">💬 Private Chat</a>
+      <a href="groups.html" target="_blank">👥 Groups</a>
+    </section>
 
-    loginBtn.onclick = async () => {
-      const email = document.getElementById("loginEmail").value;
-      const pass = document.getElementById("loginPassword").value;
-      try {
-        await auth.signInWithEmailAndPassword(email, pass);
-      } catch (e) {
-        alert(e.message);
-      }
-    };
+    <section id="noticeBoard" style="margin-top:30px;">
+      <h3>📢 Notice Board</h3>
+      <div id="noticeList"></div>
+    </section>
 
-    signupBtn.onclick = async () => {
-      const name = document.getElementById("signupName").value;
-      const email = document.getElementById("signupEmail").value;
-      const pass = document.getElementById("signupPassword").value;
-      const role = document.getElementById("signupRole").value;
-      try {
-        const cred = await auth.createUserWithEmailAndPassword(email, pass);
-        await db.collection("users").doc(cred.user.uid).set({ uid: cred.user.uid, name, email, role, approved: false });
-        alert("Account created. Awaiting approval.");
-        await auth.signOut();
-      } catch (e) {
-        alert(e.message);
-      }
-    };
+    <button id="logoutBtnStudent" style="margin-top:20px;">Logout</button>
+  </main>
+</div>
 
-    logoutBtn.onclick = () => auth.signOut();
-    backFromGlobal.onclick = () => show("dashboardView");
-    backFromPrivate.onclick = () => show("dashboardView");
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy } 
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } 
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) return show("loginView");
-      const docSnap = await db.collection("users").doc(user.uid).get();
-      if (!docSnap.exists) return alert("User not found.");
-      const userData = docSnap.data();
-      if (!userData.approved) {
-        alert("Awaiting approval.");
-        await auth.signOut();
-        return;
-      }
-      localStorage.setItem("chatUser", JSON.stringify(userData));
-      document.getElementById("dashboardTitle").textContent = `Welcome, ${userData.name}`;
-      if (userData.role === "faculty") {
-        document.getElementById("facultySection").style.display = "block";
-        db.collection("users").where("approved", "==", false).onSnapshot(snap => {
-          const list = document.getElementById("pendingList");
-          list.innerHTML = "";
-          snap.forEach(doc => {
-            const u = doc.data();
-            const btn = document.createElement("button");
-            btn.textContent = `Approve ${u.email}`;
-            btn.onclick = () => doc.ref.update({ approved: true });
-            list.appendChild(btn);
-          });
-        });
-      } else {
-        document.getElementById("facultySection").style.display = "none";
-      }
-      show("dashboardView");
+  const firebaseConfig = {
+    apiKey: "AIzaSyAFKmM22FUSQPYy-eMsBzcZN3bmAxglXl0",
+    authDomain: "smart-timetable-266fe.firebaseapp.com",
+    projectId: "smart-timetable-266fe",
+    storageBucket: "smart-timetable-266fe.appspot.com",
+    messagingSenderId: "843230713835",
+    appId: "1:843230713835:web:b97d024f4fcf9a40ceabae"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  const showView = id => { document.querySelectorAll('.view').forEach(v => v.style.display='none'); document.getElementById(id).style.display='block'; };
+
+  // Toggle panels
+  const container = document.getElementById('container');
+  document.getElementById('signUp').onclick = () => container.classList.add('right-panel-active');
+  document.getElementById('signIn').onclick = () => container.classList.remove('right-panel-active');
+
+  // Signup
+  signupForm.onsubmit = async e => {
+    e.preventDefault();
+    const name = signupName.value, email = signupEmail.value, password = signupPassword.value, role = signupRole.value;
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db,'users',cred.user.uid),{name,email,role,approved:false,uid:cred.user.uid,createdAt:serverTimestamp()});
+      alert('Account created. Wait for approval.');
+      await signOut(auth);
+      container.classList.remove('right-panel-active');
+    } catch(e){ alert(e.message); console.error(e); }
+  };
+
+  // Login
+  loginForm.onsubmit = async e => {
+    e.preventDefault();
+    try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); }
+    catch(e){ alert(e.message); console.error(e); }
+  };
+
+  logoutBtnFaculty.onclick = async ()=>{ await signOut(auth); showView('loginView'); };
+  logoutBtnStudent.onclick = async ()=>{ await signOut(auth); showView('loginView'); };
+
+  // Faculty: Load pending approvals
+  function loadPendingRealtime(){
+    const q = query(collection(db,'users'),where('approved','==',false));
+    onSnapshot(q,snap=>{
+      const tb=document.querySelector('#pendingTable tbody'); tb.innerHTML='';
+      snap.forEach(d=>{
+        const data=d.data(); const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${data.email}</td><td>${data.role}</td><td>${data.approved?'Approved':'Pending'}</td>`;
+        const td=document.createElement('td'); const btn=document.createElement('button');
+        btn.textContent='Approve'; btn.onclick=async()=>{await updateDoc(doc(db,'users',d.id),{approved:true});};
+        td.appendChild(btn); tr.appendChild(td); tb.appendChild(tr);
+      });
     });
+  }
 
-    openGlobal.onclick = () => {
-      const chatRef = db.collection("globalChat").orderBy("timestamp", "asc");
-      const box = document.getElementById("globalChatBox");
-      chatRef.onSnapshot(snap => {
-        box.innerHTML = "";
-        snap.forEach(doc => {
-          const m = doc.data();
-          const div = document.createElement("div");
-          div.className = "msg " + (m.senderUid === JSON.parse(localStorage.chatUser).uid ? "self" : "other");
-          div.textContent = `${m.senderName}: ${m.text}`;
-          box.appendChild(div);
-        });
-        box.scrollTop = box.scrollHeight;
+  // Faculty: Post Notice
+  noticeForm.onsubmit = async e=>{
+    e.preventDefault();
+    const title = noticeTitle.value.trim(), message = noticeMsg.value.trim(), file = noticeFile.files[0];
+    if(!title || !message) return alert('Fill all fields');
+    let fileUrl='';
+    try {
+      if(file){
+        const storageRef = ref(storage,'notices/'+Date.now()+'_'+file.name);
+        await uploadBytes(storageRef,file);
+        fileUrl = await getDownloadURL(storageRef);
+      }
+      const user = auth.currentUser;
+      const userSnap = await getDoc(doc(db,'users',user.uid));
+      const userData = userSnap.data();
+      await addDoc(collection(db,'notices'),{
+        title,message,fileUrl,
+        authorName:userData.name,
+        authorUid:user.uid,
+        timestamp:serverTimestamp()
       });
-      show("globalView");
-    };
+      alert('Notice Posted');
+      noticeForm.reset();
+    }catch(err){ alert('Error: '+err.message); console.error(err); }
+  };
 
-    document.getElementById("sendGlobal").onclick = async () => {
-      const msg = document.getElementById("globalMsg").value.trim();
-      if (!msg) return;
-      const u = JSON.parse(localStorage.chatUser);
-      await db.collection("globalChat").add({
-        senderUid: u.uid,
-        senderName: u.name,
-        text: msg,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  // Student: Listen for notices
+  function loadNotices(){
+    const q = query(collection(db,'notices'), orderBy('timestamp','desc'));
+    onSnapshot(q,snap=>{
+      const list = document.getElementById('noticeList');
+      list.innerHTML='';
+      snap.forEach(docSnap=>{
+        const n = docSnap.data();
+        const div = document.createElement('div');
+        div.className='notice';
+        const time = n.timestamp?.toDate ? n.timestamp.toDate().toLocaleString() : '';
+        div.innerHTML = `
+          <h4>${n.title}</h4>
+          <p>${n.message}</p>
+          <small>Posted by ${n.authorName || 'Faculty'} - ${time}</small><br>
+          ${n.fileUrl ? `<a href="${n.fileUrl}" target="_blank">📎 View Attachment</a>` : ''}
+        `;
+        list.appendChild(div);
       });
-      document.getElementById("globalMsg").value = "";
-    };
+    });
+  }
 
-    openPrivate.onclick = () => {
-      const box = document.getElementById("privateChatBox");
-      box.innerHTML = "<div class='bubble mine'>This is a placeholder private chat.</div>";
-      show("privateView");
-    };
-
-    document.getElementById("sendPrivate").onclick = () => {
-      const text = document.getElementById("privateMsg").value;
-      if (!text) return;
-      const msg = document.createElement("div");
-      msg.className = "bubble mine";
-      msg.textContent = text;
-      document.getElementById("privateChatBox").appendChild(msg);
-      document.getElementById("privateMsg").value = "";
-    };
-  </script>
+  // Auth state
+  onAuthStateChanged(auth, async user=>{
+    if(!user) return showView('loginView');
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()){await signOut(auth);return;}
+    const data=snap.data();
+    if(!data.approved){alert('Wait for approval');await signOut(auth);return;}
+    if(data.role==='faculty'){ showView('facultyView'); loadPendingRealtime(); }
+    else { showView('studentView'); loadNotices(); }
+  });
+</script>
 </body>
 </html>

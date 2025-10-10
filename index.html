@@ -1,259 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Campus Connect – Login & Dashboard</title>
+  <meta charset="UTF-8">
+  <title>College Chat + Notice Board</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", Roboto, Arial, sans-serif; }
-    body { min-height: 100vh; background: #f2f4f8; padding: 20px; }
-    .view { display: none; }
-    .container { position: relative; width: min(900px, 95%); height: 550px; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin: auto; margin-top: 20px; }
-    .form-container { position: absolute; top: 0; height: 100%; transition: all 0.6s ease-in-out; }
-    .sign-in-container { left: 0; width: 50%; z-index: 2; }
-    .sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
-    form { background: #fff; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 50px; text-align: center; }
-    form h1 { color: #18ab91; margin-bottom: 14px; font-weight: 700; letter-spacing: .2px; }
-    input, select, textarea { width: 100%; max-width: 320px; padding: 12px 14px; margin: 8px 0; border-radius: 8px; border: none; background: #f0f1f3; }
-    textarea { resize: vertical; min-height: 80px; }
-    button { margin-top: 14px; padding: 12px 42px; border-radius: 999px; border: none; background: #18ab91; color: #fff; font-weight: 700; letter-spacing: 0.6px; cursor: pointer; transition: transform .08s ease; }
-    button:active { transform: scale(.98); }
-    button.ghost { background: transparent; border: 2px solid rgba(255,255,255,0.35); color: #fff; padding: 10px 30px; }
-    .overlay-container { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; transition: transform 0.6s ease-in-out; z-index: 100; }
-    .overlay { position: relative; left: -100%; width: 200%; height: 100%; display: flex; align-items: center; transition: transform 0.6s ease-in-out; background: linear-gradient(90deg, #20b39a 0%, #17a88a 100%); color: #fff; }
-    .overlay-panel { width: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 40px; text-align: center; }
-    .overlay-panel h1 { font-size: 28px; margin-bottom: 8px; }
-    .overlay-panel p { opacity: .95; max-width: 320px; line-height: 1.4; }
-    .container.right-panel-active .sign-in-container { transform: translateX(100%); opacity: 0; z-index: 1; }
-    .container.right-panel-active .sign-up-container { transform: translateX(100%); opacity: 1; z-index: 5; }
-    .container.right-panel-active .overlay-container { transform: translateX(-100%); }
-    .container.right-panel-active .overlay { transform: translateX(50%); }
-    header { background: #18ab91; color: #fff; padding: 20px; text-align: center; }
-    main { padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px; border-bottom: 1px solid #ccc; text-align: left; }
-    .chat-links a { display:block; margin:5px 0; color:#18ab91; text-decoration:none; }
-    .notice { background:#fff; padding:10px; margin:10px 0; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
-    .notice h4 { margin-bottom:4px; color:#18ab91; }
+    body {
+      font-family: Arial;
+      background: #f3f4f6;
+      margin: 0;
+      padding: 0;
+    }
+
+    .dashboard {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .button {
+      background: #007bff;
+      color: white;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    .notice-board {
+      background: #1a1a1a;
+      color: #fff;
+      width: 80%;
+      margin: 30px auto;
+      padding: 20px;
+      border-radius: 10px;
+      height: 300px;
+      overflow-y: scroll;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+
+    .notice {
+      border-bottom: 1px solid #555;
+      padding: 10px 0;
+    }
+
+    .notice h3 {
+      margin: 0;
+      color: #00ffcc;
+    }
+
+    .notice p {
+      color: #eee;
+      margin: 5px 0;
+    }
+
+    .attachment {
+      background: #00ffcc;
+      color: black;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 8px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    #noticeForm {
+      display: none;
+      background: white;
+      padding: 20px;
+      width: 300px;
+      margin: 20px auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    input, textarea {
+      width: 90%;
+      margin: 8px 0;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
   </style>
 </head>
 <body>
-
-<!-- LOGIN / SIGNUP VIEW -->
-<div id="loginView" class="view" style="display:block;">
-  <div class="container" id="container">
-    <div class="form-container sign-up-container">
-      <form id="signupForm">
-        <h1>Create Account</h1>
-        <span>Use your email for registration</span>
-        <input id="signupName" type="text" placeholder="Name" required />
-        <input id="signupEmail" type="email" placeholder="Email" required />
-        <input id="signupPassword" type="password" placeholder="Password" required />
-        <select id="signupRole" required>
-          <option value="" disabled selected>Select your role</option>
-          <option value="student">Student</option>
-          <option value="faculty">Faculty</option>
-        </select>
-        <button type="submit">Sign Up</button>
-      </form>
+  <div class="dashboard">
+    <h2>Faculty Dashboard</h2>
+    <button class="button" onclick="openNoticeForm()">Post Notice</button>
+    <div id="noticeForm">
+      <h3>Send Notice</h3>
+      <input type="text" id="noticeTitle" placeholder="Title"><br>
+      <textarea id="noticeMessage" placeholder="Message"></textarea><br>
+      <input type="file" id="noticeFile"><br>
+      <button class="button" onclick="sendNotice()">Send Notice</button>
+      <button class="button" style="background:#aaa" onclick="closeNoticeForm()">Cancel</button>
     </div>
 
-    <div class="form-container sign-in-container">
-      <form id="loginForm">
-        <h1>Sign In</h1>
-        <input id="loginEmail" type="email" placeholder="Email" required />
-        <input id="loginPassword" type="password" placeholder="Password" required />
-        <button type="submit">Login</button>
-      </form>
-    </div>
-
-    <div class="overlay-container">
-      <div class="overlay">
-        <div class="overlay-panel overlay-left">
-          <h1>Welcome Back!</h1>
-          <p>Login with your personal info</p>
-          <button class="ghost" id="signIn">Sign In</button>
-        </div>
-        <div class="overlay-panel overlay-right">
-          <h1>Hello, Friend!</h1>
-          <p>Enter your details to start</p>
-          <button class="ghost" id="signUp">Sign Up</button>
-        </div>
-      </div>
+    <h2>Student Notice Board</h2>
+    <div class="notice-board" id="noticeBoard">
+      <p>Loading notices...</p>
     </div>
   </div>
-</div>
 
-<!-- FACULTY DASHBOARD -->
-<div id="facultyView" class="view">
-  <header><h1>Faculty / Admin Dashboard</h1></header>
-  <main>
-    <p>Welcome, Faculty/Admin.</p>
+  <script>
+    // ✅ Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR-API-KEY",
+      authDomain: "YOUR-DOMAIN.firebaseapp.com",
+      projectId: "YOUR-PROJECT-ID",
+      storageBucket: "YOUR-PROJECT-ID.appspot.com",
+      messagingSenderId: "SENDER-ID",
+      appId: "APP-ID",
+      databaseURL: "https://YOUR-DATABASE.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-    <section>
-      <h3>📢 Post a Notice</h3>
-      <form id="noticeForm">
-        <input id="noticeTitle" type="text" placeholder="Notice Title" required />
-        <textarea id="noticeMsg" placeholder="Notice Message" required></textarea>
-        <input id="noticeFile" type="file" />
-        <button type="submit">Post Notice</button>
-      </form>
-    </section>
+    const db = firebase.database();
+    const storage = firebase.storage();
 
-    <h3 style="margin-top:20px;">Pending Signups:</h3>
-    <table id="pendingTable"><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
-    <button id="logoutBtnFaculty">Logout</button>
-  </main>
-</div>
+    function openNoticeForm() {
+      document.getElementById('noticeForm').style.display = 'block';
+    }
+    function closeNoticeForm() {
+      document.getElementById('noticeForm').style.display = 'none';
+    }
 
-<!-- STUDENT DASHBOARD -->
-<div id="studentView" class="view">
-  <header><h1>Student Dashboard</h1></header>
-  <main>
-    <p>Welcome, Student.</p>
+    // 📤 Faculty send notice
+    function sendNotice() {
+      const title = document.getElementById('noticeTitle').value;
+      const message = document.getElementById('noticeMessage').value;
+      const file = document.getElementById('noticeFile').files[0];
 
-    <section style="margin-top:20px;">
-      <h3>Chat Options</h3>
-      <a href="chat.html" target="_blank">🌐 Global Chat</a>
-      <a href="private.html" target="_blank">💬 Private Chat</a>
-      <a href="groups.html" target="_blank">👥 Groups</a>
-    </section>
-
-    <section id="noticeBoard" style="margin-top:30px;">
-      <h3>📢 Notice Board</h3>
-      <div id="noticeList"></div>
-    </section>
-
-    <button id="logoutBtnStudent" style="margin-top:20px;">Logout</button>
-  </main>
-</div>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy } 
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } 
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAFKmM22FUSQPYy-eMsBzcZN3bmAxglXl0",
-    authDomain: "smart-timetable-266fe.firebaseapp.com",
-    projectId: "smart-timetable-266fe",
-    storageBucket: "smart-timetable-266fe.appspot.com",
-    messagingSenderId: "843230713835",
-    appId: "1:843230713835:web:b97d024f4fcf9a40ceabae"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
-
-  const showView = id => { document.querySelectorAll('.view').forEach(v => v.style.display='none'); document.getElementById(id).style.display='block'; };
-
-  // Toggle panels
-  const container = document.getElementById('container');
-  document.getElementById('signUp').onclick = () => container.classList.add('right-panel-active');
-  document.getElementById('signIn').onclick = () => container.classList.remove('right-panel-active');
-
-  // Signup
-  signupForm.onsubmit = async e => {
-    e.preventDefault();
-    const name = signupName.value, email = signupEmail.value, password = signupPassword.value, role = signupRole.value;
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db,'users',cred.user.uid),{name,email,role,approved:false,uid:cred.user.uid,createdAt:serverTimestamp()});
-      alert('Account created. Wait for approval.');
-      await signOut(auth);
-      container.classList.remove('right-panel-active');
-    } catch(e){ alert(e.message); console.error(e); }
-  };
-
-  // Login
-  loginForm.onsubmit = async e => {
-    e.preventDefault();
-    try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); }
-    catch(e){ alert(e.message); console.error(e); }
-  };
-
-  logoutBtnFaculty.onclick = async ()=>{ await signOut(auth); showView('loginView'); };
-  logoutBtnStudent.onclick = async ()=>{ await signOut(auth); showView('loginView'); };
-
-  // Faculty: Load pending approvals
-  function loadPendingRealtime(){
-    const q = query(collection(db,'users'),where('approved','==',false));
-    onSnapshot(q,snap=>{
-      const tb=document.querySelector('#pendingTable tbody'); tb.innerHTML='';
-      snap.forEach(d=>{
-        const data=d.data(); const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${data.email}</td><td>${data.role}</td><td>${data.approved?'Approved':'Pending'}</td>`;
-        const td=document.createElement('td'); const btn=document.createElement('button');
-        btn.textContent='Approve'; btn.onclick=async()=>{await updateDoc(doc(db,'users',d.id),{approved:true});};
-        td.appendChild(btn); tr.appendChild(td); tb.appendChild(tr);
-      });
-    });
-  }
-
-  // Faculty: Post Notice
-  noticeForm.onsubmit = async e=>{
-    e.preventDefault();
-    const title = noticeTitle.value.trim(), message = noticeMsg.value.trim(), file = noticeFile.files[0];
-    if(!title || !message) return alert('Fill all fields');
-    let fileUrl='';
-    try {
-      if(file){
-        const storageRef = ref(storage,'notices/'+Date.now()+'_'+file.name);
-        await uploadBytes(storageRef,file);
-        fileUrl = await getDownloadURL(storageRef);
+      if (!title || !message) {
+        alert('Please fill title and message.');
+        return;
       }
-      const user = auth.currentUser;
-      const userSnap = await getDoc(doc(db,'users',user.uid));
-      const userData = userSnap.data();
-      await addDoc(collection(db,'notices'),{
-        title,message,fileUrl,
-        authorName:userData.name,
-        authorUid:user.uid,
-        timestamp:serverTimestamp()
-      });
-      alert('Notice Posted');
-      noticeForm.reset();
-    }catch(err){ alert('Error: '+err.message); console.error(err); }
-  };
 
-  // Student: Listen for notices
-  function loadNotices(){
-    const q = query(collection(db,'notices'), orderBy('timestamp','desc'));
-    onSnapshot(q,snap=>{
-      const list = document.getElementById('noticeList');
-      list.innerHTML='';
-      snap.forEach(docSnap=>{
-        const n = docSnap.data();
+      const noticeRef = db.ref('notices').push();
+      const noticeId = noticeRef.key;
+
+      if (file) {
+        const uploadTask = storage.ref('notices/' + noticeId + '_' + file.name).put(file);
+        uploadTask.on('state_changed', null, console.error, () => {
+          uploadTask.snapshot.ref.getDownloadURL().then(url => {
+            noticeRef.set({
+              title: title,
+              message: message,
+              fileUrl: url,
+              fileName: file.name,
+              timestamp: new Date().toISOString()
+            });
+            alert('Notice sent successfully!');
+            closeNoticeForm();
+          });
+        });
+      } else {
+        noticeRef.set({
+          title: title,
+          message: message,
+          fileUrl: '',
+          fileName: '',
+          timestamp: new Date().toISOString()
+        });
+        alert('Notice sent successfully!');
+        closeNoticeForm();
+      }
+    }
+
+    // 📜 Display notices to students
+    const noticeBoard = document.getElementById('noticeBoard');
+    db.ref('notices').on('value', snapshot => {
+      noticeBoard.innerHTML = '';
+      const data = snapshot.val();
+      if (!data) {
+        noticeBoard.innerHTML = '<p>No notices yet.</p>';
+        return;
+      }
+
+      const notices = Object.values(data).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+      notices.forEach(n => {
         const div = document.createElement('div');
-        div.className='notice';
-        const time = n.timestamp?.toDate ? n.timestamp.toDate().toLocaleString() : '';
+        div.className = 'notice';
         div.innerHTML = `
-          <h4>${n.title}</h4>
+          <h3>${n.title}</h3>
           <p>${n.message}</p>
-          <small>Posted by ${n.authorName || 'Faculty'} - ${time}</small><br>
-          ${n.fileUrl ? `<a href="${n.fileUrl}" target="_blank">📎 View Attachment</a>` : ''}
+          <small>${new Date(n.timestamp).toLocaleString()}</small><br>
+          ${n.fileUrl ? `<button class="attachment" onclick="window.open('${n.fileUrl}','_blank')">📎 View Attachment</button>` : ''}
         `;
-        list.appendChild(div);
+        noticeBoard.appendChild(div);
       });
     });
-  }
-
-  // Auth state
-  onAuthStateChanged(auth, async user=>{
-    if(!user) return showView('loginView');
-    const snap=await getDoc(doc(db,'users',user.uid));
-    if(!snap.exists()){await signOut(auth);return;}
-    const data=snap.data();
-    if(!data.approved){alert('Wait for approval');await signOut(auth);return;}
-    if(data.role==='faculty'){ showView('facultyView'); loadPendingRealtime(); }
-    else { showView('studentView'); loadNotices(); }
-  });
-</script>
+  </script>
 </body>
 </html>

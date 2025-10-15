@@ -43,7 +43,6 @@
       box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
     }
 
-    /* Chat list */
     #chatList {
       flex: 1;
       overflow-y: auto;
@@ -85,7 +84,6 @@
       margin-left: 8px;
     }
 
-    /* Messages */
     #messages {
       flex: 1;
       overflow-y: auto;
@@ -165,7 +163,6 @@
 
   <input id="searchBar" type="text" placeholder="Search or start new chat...">
   <div id="chatList"></div>
-
   <div id="messages"></div>
 
   <div class="input-box">
@@ -180,7 +177,7 @@
       serverTimestamp, updateDoc, doc, arrayUnion, getDoc, setDoc, getDocs
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // 🔥 Firebase config
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAFKmM22FUSQPYy-eMsBzcZN3bmAxglXl0",
       authDomain: "smart-timetable-266fe.firebaseapp.com",
@@ -218,12 +215,11 @@
       searchBar.style.display = "block";
     });
 
-    // 🔍 Search users live
+    // Search users
     searchBar.addEventListener("input", async () => {
       const qText = searchBar.value.trim().toLowerCase();
       chatListDiv.innerHTML = "";
       if (!qText) { loadChats(); return; }
-
       const usersRef = collection(db, "users");
       const usersSnap = await getDocs(usersRef);
       usersSnap.forEach(docSnap => {
@@ -238,34 +234,18 @@
       });
     });
 
-    // 📜 Load chats sorted + unread
+    // Load chats
     function loadChats() {
       const q = query(collection(db, "privateChats"), where("members", "array-contains", me.uid));
       onSnapshot(q, async snap => {
         chatListDiv.innerHTML = "";
         const chats = [];
         snap.forEach(d => chats.push({ id: d.id, data: d.data() }));
-
-        // Sort properly
-        chats.sort((a, b) => {
-          const aTime = a.data.lastUpdated?.toMillis?.() || 0;
-          const bTime = b.data.lastUpdated?.toMillis?.() || 0;
-          return bTime - aTime;
-        });
-
+        chats.sort((a, b) => (b.data.lastUpdated?.toMillis?.() || 0) - (a.data.lastUpdated?.toMillis?.() || 0));
         for (const chat of chats) {
           const friendUid = chat.data.members.find(uid => uid !== me.uid);
           const friendDoc = await getDoc(doc(db, "users", friendUid));
           const friendData = friendDoc.data() || { name: "Unknown" };
-
-          // Count unread
-          const msgSnap = await getDocs(collection(db, "privateChats", chat.id, "messages"));
-          let unreadCount = 0;
-          msgSnap.forEach(m => {
-            const d = m.data();
-            if (!d.seenBy?.includes(me.uid) && d.senderUid !== me.uid) unreadCount++;
-          });
-
           const div = document.createElement("div");
           div.className = "chat-item";
           div.innerHTML = `
@@ -275,15 +255,8 @@
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span class="chat-time">${chat.data.lastTime || ""}</span>
-              ${unreadCount > 0 ? `<span class="unread">${unreadCount}</span>` : ""}
-            </div>
-          `;
-          div.addEventListener("click", () => {
-            startChat(chat.id, friendUid, friendData);
-            const badge = div.querySelector(".unread");
-            if (badge) badge.remove();
-          });
-
+            </div>`;
+          div.addEventListener("click", () => startChat(chat.id, friendUid, friendData));
           chatListDiv.appendChild(div);
         }
       });
@@ -297,7 +270,12 @@
       if (!chatsSnap.empty) {
         chatId = chatsSnap.docs[0].id;
       } else {
-        const docRef = await addDoc(chatRef, { members: [me.uid, friend.uid], created: serverTimestamp() });
+        const docRef = await addDoc(chatRef, {
+          members: [me.uid, friend.uid],
+          created: serverTimestamp(),
+          lastUpdated: serverTimestamp(),
+          lastMsg: ""
+        });
         chatId = docRef.id;
       }
       startChat(chatId, friend.uid, friend);
@@ -316,24 +294,24 @@
       if (unsubMsg) unsubMsg();
       const msgQ = query(collection(db, "privateChats", chatId, "messages"), orderBy("timestamp"));
       unsubMsg = onSnapshot(msgQ, snap => {
+        console.log("Loaded messages:", snap.size);
         messagesDiv.innerHTML = "";
+        if (snap.empty) {
+          messagesDiv.innerHTML = "<p style='text-align:center;color:gray;'>No messages yet</p>";
+          return;
+        }
         snap.forEach(d => {
           const m = d.data();
           const bubble = document.createElement("div");
           bubble.className = "bubble " + (m.senderUid === me.uid ? "mine" : "theirs");
           const timeStr = m.timestamp?.toDate?.().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) || "";
-          
-          // ✅ Tick system
           let tickHtml = "";
           if (m.senderUid === me.uid) {
             const isSeen = currentFriend && m.seenBy?.includes(currentFriend.uid);
             tickHtml = `<span class="tick ${isSeen ? 'seen' : ''}">✔✔</span>`;
           }
-
-          bubble.innerHTML = `<div>${m.text}</div>
-            <div class="time"><span>${timeStr}</span>${tickHtml}</div>`;
+          bubble.innerHTML = `<div>${m.text}</div><div class="time"><span>${timeStr}</span>${tickHtml}</div>`;
           messagesDiv.appendChild(bubble);
-
           if (m.senderUid !== me.uid) markSeen(d.id);
         });
         messagesDiv.scrollTo({ top: messagesDiv.scrollHeight, behavior: "smooth" });
@@ -343,6 +321,7 @@
     async function sendMessage() {
       const text = msgInput.value.trim();
       if (!text || !currentChatId) return;
+      console.log("Sending message to chat:", currentChatId);
       const msgRef = collection(db, "privateChats", currentChatId, "messages");
       await addDoc(msgRef, {
         senderUid: me.uid,

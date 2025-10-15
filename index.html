@@ -160,40 +160,41 @@
 
     function showView(id){ document.querySelectorAll('.view').forEach(v=>v.style.display='none'); document.getElementById(id).style.display='block'; }
 
-    // === Auth ===
+    // === SIGN UP ===
     document.getElementById('signupForm').addEventListener('submit', async e=>{
       e.preventDefault();
-      const name=signupName.value, email=signupEmail.value, pass=signupPassword.value, role=signupRole.value;
-      try{
-        const cred=await createUserWithEmailAndPassword(auth,email,pass);
-        await setDoc(doc(db,'users',cred.user.uid),{name,email,role,approved:false,uid:cred.user.uid,createdAt:serverTimestamp()});
+      const name = signupName.value.trim(), email = signupEmail.value.trim(), pass = signupPassword.value, role = signupRole.value;
+      try {
+        const cred = await createUserWithEmailAndPassword(auth,email,pass);
+        await setDoc(doc(db,'users',cred.user.uid),{
+          name,email,role,approved:false,uid:cred.user.uid,createdAt:serverTimestamp()
+        });
         alert('Account created! Awaiting approval.');
         await signOut(auth);
-      }catch(e){alert(e.message);}
+      } catch(e){alert(e.message);}
     });
 
+    // === LOGIN ===
     document.getElementById('loginForm').addEventListener('submit', async e=>{
       e.preventDefault();
       try{ await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); }
       catch(err){ alert(err.message); }
     });
 
-    // 🔐 Reset Password
+    // === RESET PASSWORD ===
     document.getElementById('forgotPass').onclick = async () => {
       const email = prompt("Enter your registered email to reset password:");
       if (!email) return;
       try {
         await sendPasswordResetEmail(auth, email);
-        alert("Password reset email sent! Check your inbox.");
-      } catch (err) {
-        alert("Error: " + err.message);
-      }
+        alert("Password reset email sent!");
+      } catch (err) { alert("Error: " + err.message); }
     };
 
     document.getElementById('logoutBtnFaculty').onclick=()=>signOut(auth);
     document.getElementById('logoutBtnStudent').onclick=()=>signOut(auth);
 
-    // === Auth State ===
+    // === AUTH STATE ===
     onAuthStateChanged(auth,async user=>{
       if(!user)return showView('loginView');
       const d=await getDoc(doc(db,'users',user.uid));
@@ -204,29 +205,35 @@
       else{showView('studentView');loadNotices();}
     });
 
-    // === Faculty Approvals ===
+    // === FACULTY APPROVALS ===
     async function loadPendingSignups(){
       const tbody=document.querySelector("#pendingTable tbody");
+      tbody.innerHTML="<tr><td colspan='4'>Loading...</td></tr>";
       const qPending=query(collection(db,"users"),where("approved","==",false));
       onSnapshot(qPending,snap=>{
         tbody.innerHTML="";
+        if(snap.empty){tbody.innerHTML="<tr><td colspan='4'>No pending users.</td></tr>";return;}
         snap.forEach(d=>{
           const u=d.data();
           const tr=document.createElement("tr");
           tr.innerHTML=`<td>${u.email}</td><td>${u.role}</td><td>${u.approved?"Approved":"Pending"}</td>
-          <td><button class="approveBtn" data-id="${u.uid}">Approve</button></td>`;
+          <td><button class='approveBtn' data-id='${u.uid}'>Approve</button></td>`;
           tbody.appendChild(tr);
         });
         tbody.querySelectorAll(".approveBtn").forEach(btn=>{
-          btn.onclick=async()=>{await updateDoc(doc(db,"users",btn.dataset.id),{approved:true});alert("User approved.");};
+          btn.onclick=async()=>{
+            await updateDoc(doc(db,"users",btn.dataset.id),{approved:true});
+            alert("User approved successfully.");
+          };
         });
+      }, err=>{
+        tbody.innerHTML=`<tr><td colspan='4' style='color:red;'>Error: ${err.message}</td></tr>`;
       });
     }
 
-    // === Notice Board (Faculty) ===
+    // === NOTICE BOARD ===
     window.openNoticePopup=()=>document.getElementById("noticePopup").style.display="flex";
     window.closeNoticePopup=()=>document.getElementById("noticePopup").style.display="none";
-
     window.sendNotice=async()=>{
       const title=noticeTitle.value.trim(), message=noticeMessage.value.trim(), file=noticeFile.files[0];
       if(!title||!message){alert("Please fill all fields");return;}
@@ -242,7 +249,6 @@
       closeNoticePopup();
     }
 
-    // === Student Notices ===
     function loadNotices(){
       const nb=document.getElementById("noticeBoard");
       const q=query(collection(db,"notices"),orderBy("timestamp","desc"));
@@ -253,12 +259,7 @@
           const n=doc.data();
           const card=document.createElement("div");
           card.className="notice-card";
-          card.innerHTML=`
-            <h4>${n.title}</h4>
-            <p>${n.message}</p>
-            <small>${n.timestamp?new Date(n.timestamp.toDate()).toLocaleString():""}</small><br>
-            ${n.fileUrl?`<button class='attachment-btn' onclick="window.open('${n.fileUrl}','_blank')">📎 View Attachment</button>`:""}
-          `;
+          card.innerHTML=`<h4>${n.title}</h4><p>${n.message}</p><small>${n.timestamp?new Date(n.timestamp.toDate()).toLocaleString():""}</small><br>${n.fileUrl?`<button class='attachment-btn' onclick="window.open('${n.fileUrl}','_blank')">📎 View Attachment</button>`:""}`;
           nb.appendChild(card);
         });
       });

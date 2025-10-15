@@ -15,7 +15,6 @@ body{background:var(--dark);color:var(--light);display:flex;justify-content:cent
 .app{display:grid;grid-template-columns:300px 1fr;gap:1rem;width:95%;max-width:1200px;height:90vh;}
 @media(max-width:800px){.app{grid-template-columns:1fr;height:100vh;}}
 .sidebar,.chat{background:var(--darker);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;}
-.sidebar header{display:flex;align-items:center;justify-content:flex-end;padding:1rem;background:var(--dark);}
 .sidebar .groups{flex:1;overflow:auto;padding:.6rem;display:flex;flex-direction:column;gap:.4rem;}
 .group{padding:.6rem;border-radius:6px;background:#1f2c33;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
 .group:hover{background:#223038;}
@@ -36,11 +35,6 @@ button.small{background:none;border:none;color:var(--gray);cursor:pointer;font-s
 <body>
 <div class="app">
   <div class="sidebar">
-    <header>
-      <!-- Removed avatar, username, email -->
-      <button id="signin" class="small">Sign in</button>
-      <button id="signout" class="small" style="display:none;">Sign out</button>
-    </header>
     <div style="padding:.5rem 1rem;">
       <input id="search" placeholder="Search or start new chat" style="width:100%;padding:.4rem;border:none;border-radius:6px;background:#1f2c33;color:var(--light);">
       <button id="createGroup" class="small" style="margin-top:.3rem;">+ Create Group</button>
@@ -75,9 +69,6 @@ import {
   query, orderBy, serverTimestamp, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import {
   getStorage, ref as sRef, uploadBytesResumable, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
@@ -88,27 +79,21 @@ const firebaseConfig = {
   storageBucket:"smart-timetable-266fe.appspot.com"
 };
 const app=initializeApp(firebaseConfig);
-const db=getFirestore(app); const auth=getAuth(app); const storage=getStorage(app);
+const db=getFirestore(app); 
+const storage=getStorage(app);
 
-let user=null,activeGroup=null,unsubMsgs=null,unsubTyping=null,fileToSend=null;
+// 🔑 Replace this with user info from your login page
+let user = { uid: "test123", name: "User", email: "" };
+
+let activeGroup=null,unsubMsgs=null,unsubTyping=null,fileToSend=null;
 const $=(id)=>document.getElementById(id);
-const signin=$('signin'),signout=$('signout'),groupsEl=$('groups'),
-createGroup=$('createGroup'),search=$('search'),groupName=$('groupName'),
-members=$('members'),messagesEl=$('messages'),sendBtn=$('send'),
-input=$('messageInput'),attach=$('attach'),file=$('file'),
+const groupsEl=$('groups'),createGroup=$('createGroup'),search=$('search'),
+groupName=$('groupName'),members=$('members'),messagesEl=$('messages'),
+sendBtn=$('send'),input=$('messageInput'),attach=$('attach'),file=$('file'),
 fileprev=$('fileprev'),typingEl=$('typing'),delGroup=$('deleteGroup');
 
-signin.onclick=async()=>{await signInWithPopup(auth,new GoogleAuthProvider());};
-signout.onclick=()=>signOut(auth);
-onAuthStateChanged(auth,u=>{
-  user=u?{uid:u.uid,name:u.displayName||"User",email:u.email||""}:null;
-  if(u){signin.style.display='none';signout.style.display='block';}
-  else{signin.style.display='block';signout.style.display='none';}
-  renderGroups();
-});
-
 createGroup.onclick=async()=>{
-  if(!user)return alert('Sign in');
+  if(!user)return alert('Sign in first');
   const name=prompt('Group name?'); if(!name)return;
   await addDoc(collection(db,'groups'),{
     name,creator:user.uid,members:[user.uid],admins:[user.uid],created:serverTimestamp()
@@ -147,4 +132,23 @@ async function openGroup(g){
       const div=document.createElement('div');
       div.className='msg'+(msg.senderUid===user?.uid?' me':'');
       let html=`<div>${msg.text||''}</div>`;
-      if(msg.attach){html+=`<a href='${msg.attach}' target='_blank'>📎 file</a
+      if(msg.attach){html+=`<a href='${msg.attach}' target='_blank'>📎 file</a>`;}
+      html+=`<div class='meta'><span>${msg.senderName||''}</span></div>`;
+      if(isAdmin)html+=`<button class='small' style='color:#f55;' onclick='deleteMessage("${g.id}","${m.id}")'>Delete</button>`;
+      div.innerHTML=html;messagesEl.appendChild(div);
+    });
+    messagesEl.scrollTop=messagesEl.scrollHeight;
+  });
+  unsubTyping=onSnapshot(collection(db,'groups',g.id,'typing'),snap=>{
+    let t=[];snap.forEach(d=>t.push(d.data().name));t=t.filter(n=>n!==user?.name);
+    typingEl.textContent=t.length?t.join(', ')+' typing...':'';
+  });
+}
+
+window.deleteMessage=async(gid,mid)=>{
+  await deleteDoc(doc(db,'groups',gid,'messages',mid));
+};
+
+delGroup.onclick=async()=>{
+  if(!confirm('Delete group?'))return;
+  await deleteDoc(doc(db,'groups',activeGroup.id
